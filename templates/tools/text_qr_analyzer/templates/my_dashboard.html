@@ -102,12 +102,11 @@ color:white;
 
 <hr style="margin:40px 0;border:1px solid #FDBD01">
 
-<h2>📷 QR Scanner</h2>
-<form method="POST" action="/scan-qr"></form>
+<h2> QR Scanner</h2>
+
 <input type="file" id="qrInput">
 
-<button onclick="scanQR()">Scan QR</button>
-</form>
+<button type="button" onclick="scanQR()">Scan QR</button>
 
 <div class="meter-container">
 <div class="meter-bar" id="riskBar"></div>
@@ -123,7 +122,7 @@ async function analyzeText(){
 
 const text=document.getElementById("textInput").value;
 
-const response=await fetch("http://localhost:8001/analyze-text",{
+const response=await fetch("/analyze-text",{
 
 method:"POST",
 headers:{"Content-Type":"application/json"},
@@ -144,7 +143,7 @@ const file=document.getElementById("qrInput").files[0];
 const formData=new FormData();
 formData.append("file",file);
 
-const response=await fetch("http://localhost:8002/scan-qr",{
+const response=await fetch("/scan-qr",{
 
 method:"POST",
 body:formData

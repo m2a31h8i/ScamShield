@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends
+from fastapi import FastAPI, Request, Form, Depends, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -8,6 +8,7 @@ from app import models, auth, agents
 from app.config import SECRET_KEY
 import os
 import requests
+import re
 from app import models
 from app import agents
 from app.database import SessionLocal
@@ -24,6 +25,42 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+def _template_path(*parts: str) -> str:
+    return os.path.join("templates", *parts)
+
+
+def _read_template(*parts: str) -> str:
+    with open(_template_path(*parts), "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _text_risk_analysis(text: str) -> dict:
+    lowered = text.lower()
+    risk = 0.05
+    explanation = []
+
+    urgent_words = ["urgent", "immediately", "now", "asap", "limited time"]
+    if any(word in lowered for word in urgent_words):
+        risk += 0.25
+        explanation.append("Urgency language detected")
+
+    suspicious_words = ["verify", "login", "otp", "reward", "free", "bank", "account"]
+    hits = sum(1 for word in suspicious_words if word in lowered)
+    if hits:
+        risk += min(0.35, hits * 0.08)
+        explanation.append("Suspicious scam keywords detected")
+
+    if re.search(r"https?://\S+", text):
+        risk += 0.2
+        explanation.append("Message contains a URL")
+
+    if not explanation:
+        explanation.append("No obvious scam indicators detected")
+
+    score = round(min(risk, 1), 2)
+    category = "safe message" if score < 0.4 else "phishing scam"
+    return {"risk_score": score, "category": category, "explanation": explanation}
+
 def get_db():
     db = SessionLocal()
     try:
@@ -39,7 +76,7 @@ def get_current_user(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return open("templates/index.html").read()
+    return open("templates/index.html")
 
 # ================= CONTACT =================
 
@@ -59,7 +96,7 @@ def contact(name: str = Form(...),
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page():
-    return open("templates/register.html").read()
+    return open("templates/register.html")
 
 @app.post("/register")
 def register(username: str = Form(...),
@@ -100,20 +137,19 @@ def register(username: str = Form(...),
 
 @app.get("/about", response_class=HTMLResponse)
 def about():
-    return open("templates/about.html").read()
-
+    return _read_template("about.html")
 
 # ================= HELP =================
 
 @app.get("/help", response_class=HTMLResponse)
 def help_page():
-    return open("templates/help.html").read()
+    return _read_template("help.html")
 
 # ================= LOGIN =================
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page():
-    return open("templates/login.html").read()
+    return _read_template("login.html")
 
 @app.post("/login")
 def login(request: Request,
@@ -144,7 +180,7 @@ def logout(request: Request):
 def dashboard(request: Request):
     if not get_current_user(request):
         return RedirectResponse("/login", status_code=303)
-    return open("templates/dashboard.html").read()
+    return _read_template("dashboard.html")
 
 # @app.get("/tool/ip-intel/{ip}")
 # def ip_tool(ip: str):
@@ -192,7 +228,7 @@ def profile(request: Request):
     if not user:
         return RedirectResponse("/login", status_code=303)
 
-    return open("templates/profile.html").read()
+    return _read_template("profile.html")
 
 # ================= ADMIN DASHBOARD =================
 
@@ -201,13 +237,13 @@ def admin_dashboard(request: Request):
     user = get_current_user(request)
     if not user or user["role"] != "admin":
         return RedirectResponse("/login", status_code=303)
-    return open("templates/admin_dashboard.html").read()
+    return _read_template("admin_dashboard.html")
 
 # ================= TOOLS =================
 
 @app.get("/tools/port-scanner", response_class=HTMLResponse)
 def port_page():
-    return open("templates/tools/port_scanner.html").read()
+    return _read_template("tools", "port_scanner.html")
 
 @app.post("/tools/port-scanner")
 def run_port_scanner(request: Request,
@@ -224,7 +260,7 @@ def run_port_scanner(request: Request,
     db.add(log)
     db.commit()
 
-    return HTMLResponse(f"<h2>{result}</h2><a href='/dashboard'>Back</a>")
+    return _read_template("tools", "vuln_scanner.html")
 
 # ================= VULN =================
 
@@ -253,7 +289,7 @@ def run_vuln_scanner(request: Request,
 
 @app.get("/tools/log-analyzer", response_class=HTMLResponse)
 def log_page():
-    return open("templates/tools/log_analyzer.html").read()
+    return _read_template("tools", "log_analyzer.html")
 
 @app.post("/tools/log-analyzer")
 def run_log_analyzer(request: Request,
@@ -276,7 +312,12 @@ def run_log_analyzer(request: Request,
 
 @app.get("/tools/url-scanner", response_class=HTMLResponse)
 def url_scanner_page():
-    return open("templates/tools/url_scanner.html").read()
+    return _read_template("tools", "url", "frontend", "templates", "main.html")
+
+
+@app.get("/url-scanner", response_class=HTMLResponse)
+def url_scanner_alias():
+    return url_scanner_page()
 
 @app.post("/tools/url-scanner")
 def run_url_scanner(request: Request,
@@ -304,6 +345,70 @@ def run_url_scanner(request: Request,
 
     return HTMLResponse(f"<h2>{result}</h2><a href='/dashboard'>Back</a>")
 
+@app.post("/scan")
+def proxy_url_scan(payload: dict):
+    try:
+        response = requests.post("http://localhost:5000/scan", json=payload, timeout=60)
+    except Exception as e:
+        return {"success": False, "error": f"URL scanner backend unavailable: {str(e)}"}
+
+    try:
+        return response.json()
+    except Exception:
+        return {"success": False, "error": response.text}
+
+
+@app.get("/history")
+def proxy_url_history():
+    try:
+        response = requests.get("http://localhost:5000/history", timeout=30)
+        return response.json()
+    except Exception as e:
+        return {"success": False, "error": f"URL scanner backend unavailable: {str(e)}"}
+
+
+@app.get("/scan/{scan_id}")
+def proxy_url_scan_by_id(scan_id: int):
+    try:
+        response = requests.get(f"http://localhost:5000/scan/{scan_id}", timeout=30)
+        return response.json()
+    except Exception as e:
+        return {"success": False, "error": f"URL scanner backend unavailable: {str(e)}"}
+
+
+@app.get("/report/{scan_id}")
+def proxy_url_report(scan_id: int):
+    return RedirectResponse(url=f"http://localhost:5000/report/{scan_id}", status_code=307)
+
+
+@app.get("/qr-scanner", response_class=HTMLResponse)
+def qr_scanner_page():
+    return _read_template("tools", "text_qr_analyzer", "templates", "my_dashboard.html")
+
+
+@app.post("/analyze-text")
+async def analyze_text(request: Request):
+    payload = await request.json()
+    text = payload.get("text", "") if isinstance(payload, dict) else ""
+    if not text.strip():
+        return {"risk_score": 0, "category": "safe message", "explanation": ["No text provided"]}
+    return _text_risk_analysis(text)
+
+
+@app.post("/scan-qr")
+async def scan_qr(file: UploadFile = File(...)):
+    try:
+        data = await file.read()
+        files = {"file": (file.filename or "qr.png", data, file.content_type or "application/octet-stream")}
+        response = requests.post("http://localhost:8002/scan-qr", files=files, timeout=60)
+        return response.json()
+    except Exception:
+        return {
+            "risk_score": 0,
+            "category": "unavailable",
+            "explanation": ["QR analyzer service is not running on localhost:8002"],
+        }
+
 @app.get("/analysis", response_class=HTMLResponse)
 def user_analysis(request: Request, db: Session = Depends(get_db)):
 
@@ -319,7 +424,7 @@ def user_analysis(request: Request, db: Session = Depends(get_db)):
     medium = len([l for l in logs if l.risk_level == "medium"])
     low = len([l for l in logs if l.risk_level == "low"])
 
-    html = open("templates/analysis.html").read()
+    html = _read_template("analysis.html")
 
     html = html.replace("{{total}}", str(len(logs)))
     html = html.replace("{{high}}", str(high))
