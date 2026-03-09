@@ -76,7 +76,7 @@ def get_current_user(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 def home():
-    return open("templates/index.html")
+    return _read_template("index.html")
 
 # ================= CONTACT =================
 
@@ -96,7 +96,7 @@ def contact(name: str = Form(...),
 
 @app.get("/register", response_class=HTMLResponse)
 def register_page():
-    return open("templates/register.html")
+    return _read_template("register.html")
 
 @app.post("/register")
 def register(username: str = Form(...),
