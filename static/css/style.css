@@ -1,0 +1,234 @@
+/* GLOBAL */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family: "Segoe UI", sans-serif;
+}
+
+body{
+background:#0a0f1c;
+color:#e6f1ff;
+min-height:100vh;
+}
+
+/* NAVBAR */
+
+nav{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:18px 60px;
+background:#0d1326;
+border-bottom:1px solid #1f2b4d;
+}
+
+.logo{
+font-size:26px;
+font-weight:bold;
+color:#00f2ff;
+letter-spacing:2px;
+}
+
+nav ul{
+display:flex;
+gap:25px;
+list-style:none;
+}
+
+nav ul li a{
+text-decoration:none;
+color:#c6d4ff;
+transition:0.3s;
+}
+
+nav ul li a:hover{
+color:#00f2ff;
+}
+
+/* HERO */
+
+.hero{
+height:80vh;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+background: radial-gradient(circle,#0c1733,#02050f);
+}
+
+.hero h1{
+font-size:48px;
+color:#00f2ff;
+margin-bottom:20px;
+letter-spacing:3px;
+}
+
+.hero p{
+font-size:18px;
+margin-bottom:30px;
+color:#9fb3ff;
+}
+
+.btn{
+background:#00f2ff;
+padding:12px 28px;
+color:black;
+text-decoration:none;
+font-weight:bold;
+border-radius:6px;
+transition:0.3s;
+}
+
+.btn:hover{
+background:#01b2bc;
+transform:scale(1.05);
+}
+
+/* SECTION */
+
+.section{
+width:80%;
+margin:60px auto;
+padding:30px;
+background:#0d1326;
+border-radius:10px;
+border:1px solid #1f2b4d;
+}
+
+/* DASHBOARD NAV */
+
+.dashboard-nav{
+display:flex;
+gap:20px;
+padding:20px 50px;
+background:#0d1326;
+border-bottom:1px solid #1f2b4d;
+}
+
+.dashboard-nav a{
+color:#c6d4ff;
+text-decoration:none;
+transition:0.3s;
+}
+
+.dashboard-nav a:hover{
+color:#00f2ff;
+}
+
+/* TOOL GRID */
+
+.tools-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:25px;
+width:80%;
+margin:50px auto;
+}
+
+.tool-card{
+background:#111a33;
+padding:40px;
+text-align:center;
+border-radius:10px;
+text-decoration:none;
+color:#e6f1ff;
+border:1px solid #1f2b4d;
+transition:0.3s;
+}
+
+.tool-card:hover{
+transform:translateY(-6px);
+border-color:#00f2ff;
+box-shadow:0 0 10px #00f2ff55;
+}
+
+/* FORMS */
+
+.form-container{
+width:350px;
+margin:120px auto;
+padding:40px;
+background:#0d1326;
+border-radius:10px;
+border:1px solid #1f2b4d;
+}
+
+.form-container h2{
+text-align:center;
+margin-bottom:25px;
+color:#00f2ff;
+}
+
+form{
+display:flex;
+flex-direction:column;
+gap:15px;
+}
+
+input,textarea,select{
+padding:10px;
+border-radius:6px;
+border:none;
+background:#111a33;
+color:#e6f1ff;
+}
+
+textarea{
+height:120px;
+}
+
+button{
+padding:12px;
+background:#00f2ff;
+border:none;
+border-radius:6px;
+font-weight:bold;
+cursor:pointer;
+transition:0.3s;
+width:100%;
+}
+
+button:hover{
+background:#01b2bc;
+transform:scale(1.05);
+}
+
+/* PROFILE */
+
+.section h2{
+color:#00f2ff;
+margin-bottom:20px;
+}
+
+.auth-btn{
+padding:12px;
+background:#00ff9d;
+border:none;
+border-radius:6px;
+font-weight:bold;
+cursor:pointer;
+transition:0.3s;
+width:100%;
+text-align:center;
+display:inline-block;
+text-decoration:none;
+color:black;
+}
+
+.auth-btn:hover{
+background:#01b2bc;
+transform:scale(1.05);
+}
+
+.form-container a.auth-btn{
+margin-top:10px;
+display:block;
+}
+
+.form-container button{
+width:100%;
+margin-top:10px;
+}

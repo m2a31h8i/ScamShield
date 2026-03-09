@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Register</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+<div class="form-container">
+
+<h2>Create Account</h2>
+
+<form method="POST" action="/register">
+
+<input type="text" name="username" placeholder="Username">
+
+<input type="email" name="email" placeholder="Email">
+
+<input type="password" id="password" name="password" placeholder="Password">
+<p id="strength"></p>
+
+<script>
+document.getElementById("password").addEventListener("input", function() {
+
+let password = this.value
+let strength = "Weak"
+
+if(password.length > 4 && (password.match(/[A-Z]/) || password.match(/[0-9]/))){
+strength = "Medium"
+}
+
+if(password.match(/[A-Z]/) && password.match(/[0-9]/) && password.length > 6){
+strength = "Strong"
+}
+
+document.getElementById("strength").innerText = "Strength: " + strength
+
+})
+</script>
+
+<select name="role">
+<option value="user">User</option>
+<option value="admin">Admin</option>
+</select>
+
+<button type="submit">Register</button>
+
+</form>
+
+<br>
+
+<h3 style="text-align:center;">Already have an account?</h3>
+<br>
+<button onclick="window.location.href='/login'" style=" width:100%;">Login</button>
+
+</div>
+
+</body>
+</html>
