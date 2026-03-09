@@ -4,7 +4,7 @@ import cv2
 from qreader import QReader
 from transformers import pipeline
 
-router = APIRouter()
+qr_router = APIRouter()
 
 qr_reader = QReader()
 
@@ -41,7 +41,7 @@ def parse_upi_string(qr_data):
     return details
 
 
-@router.post("/scan-qr")
+@qr_router.post("/scan-qr")
 
 async def scan_qr(file: UploadFile = File(...)):
 

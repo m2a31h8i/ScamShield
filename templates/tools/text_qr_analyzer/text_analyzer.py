@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from transformers import pipeline
 import re
 
-router = APIRouter()
+text_router = APIRouter()
 
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
@@ -37,7 +37,7 @@ def link_score(text):
     return min(score,0.8)
 
 
-@router.post("/analyze-text")
+@text_router.post("/analyze-text")
 
 def analyze_text(data: InputData):
 

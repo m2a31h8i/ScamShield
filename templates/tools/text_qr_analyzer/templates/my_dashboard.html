@@ -116,11 +116,12 @@ show(data)
 }
 
 function show(data){
-
+const educational=(data.educational_explanations||[]);
 document.getElementById("result").innerHTML=
 "<p><b>Risk Score:</b> "+data.risk_score+"</p>"+
 "<p><b>Category:</b> "+data.category+"</p>"+
-"<p>"+data.explanation.join("<br>")+"</p>"
+"<p>"+data.explanation.join("<br>")+"</p>"+
+(educational.length?"<p><b>Educational Explainer Agent:</b><br>"+educational.join("<br>")+"</p>":"");
 
 }
 

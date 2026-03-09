@@ -16,17 +16,17 @@ from app.agents import password_strength_analyzer
 from app.agents import *
 from app.queue import add_task
 from fastapi.templating import Jinja2Templates
-from app.tools.text_qr_analyzer import text_analyzer
-from app.tools.text_qr_analyzer import qr_analyzer
+from templates.tools.text_qr_analyzer import text_router
+from templates.tools.text_qr_analyzer import qr_router
 
 app = FastAPI()
 
 # sam added
-templates = Jinja2Templates(directory="templates/tools/text_qr_analyzer/templates")
+templates = Jinja2Templates(directory="app/templates/tools/text_qr_analyzer/templates")
 
 @app.get("/my-tools", response_class=HTMLResponse)
-def my_tools(request: Request):
-    return templates.TemplateResponse("my_tools.html", {"request": request})
+def my_dashboard(request: Request):
+    return templates.TemplateResponse("my_dashboard.html", {"request": request})
 
 app.include_router(text_router)
 app.include_router(qr_router)
@@ -73,6 +73,9 @@ def _text_risk_analysis(text: str) -> dict:
     score = round(min(risk, 1), 2)
     category = "safe message" if score < 0.4 else "phishing scam"
     return {"risk_score": score, "category": category, "explanation": explanation}
+
+def _build_educational_explanations(threats, user_context: str = ""):
+    return [agents.educational_explainer_agent(threat, user_context) for threat in threats if threat]
 
 def get_db():
     db = SessionLocal()
@@ -195,44 +198,6 @@ def dashboard(request: Request):
         return RedirectResponse("/login", status_code=303)
     return _read_template("dashboard.html")
 
-# @app.get("/tool/ip-intel/{ip}")
-# def ip_tool(ip: str):
-
-#     return "<h3>IP Intelligence Tool</h3>"
-
-# @app.get("/tool/security-advisor/{issue}")
-# def advisor(issue: str):
-
-#     return "<h3>AI Security Advisor</h3>"
-
-# @app.get("/tool/behavior-risk")
-# def behavior_risk():
-
-#     actions = ["scan", "scan", "login_fail"]
-
-#     risk = behavioral_risk_agent(actions)
-
-#     return f"""
-#     <h2>Behavioral Risk Agent</h2>
-#     <p>User Activity: {actions}</p>
-#     <p>Calculated Risk Score: {risk}</p>
-#     """
-
-# @app.get("/tool/domain-scan/{domain}")
-# def domain_scan(domain: str):
-
-#     return "<h3>Multi-Agent Security Scan</h3>"
-
-# @app.get("/tool/threat-spike/{events}")
-# def spike(events: int):
-
-#     return "<h3>Threat Spike Detector</h3>"
-
-# @app.get("/tool/weekly-summary")
-# def weekly():
-
-#     return "<h3>Weekly Intelligence Summary</h3>"
-
 # ================= PROFILE =================
 
 @app.get("/profile", response_class=HTMLResponse)
@@ -267,13 +232,19 @@ def run_port_scanner(request: Request,
     if not user:
         return RedirectResponse("/login", status_code=303)
 
-    result = agents.port_scanner_agent(target)
+    result, risk = agents.port_scanner_agent(target)
+    ports = re.findall(r"\d+", result)
+    threats = [f"Port {port} appears open" for port in ports]
+    educational = _build_educational_explanations(threats, target)
 
-    log = models.ScanLog(user_id=user["id"], tool="Port Scanner", target=target, result=result)
+    rendered_result = result + "\n\nEducational Explainer Agent:\n- " + "\n- ".join(educational)
+
+    log = models.ScanLog(user_id=user["id"], tool="Port Scanner", target=target, result=rendered_result, risk_level=risk)
+
     db.add(log)
     db.commit()
 
-    return _read_template("tools", "vuln_scanner.html")
+    return HTMLResponse(f"<h2>{result}</h2><p><b>Educational Explainer Agent</b></p><ul>{''.join(f'<li>{line}</li>' for line in educational)}</ul><a href='/dashboard'>Back</a>")
 
 # ================= VULN =================
 
@@ -290,13 +261,17 @@ def run_vuln_scanner(request: Request,
     if not user:
         return RedirectResponse("/login", status_code=303)
 
-    result = agents.vulnerability_agent(target)
+    result, risk = agents.vulnerability_agent(target)
+    findings = [part.strip() for part in result.split(":", 1)]
+    threats = [findings[-1]]
+    educational = _build_educational_explanations(threats, target)
+    rendered_result = result + "\n\nEducational Explainer Agent:\n- " + "\n- ".join(educational)
 
-    log = models.ScanLog(user_id=user["id"], tool="Vulnerability Scanner", target=target, result=result)
+    log = models.ScanLog(user_id=user["id"], tool="Vulnerability Scanner", target=target, result=rendered_result, risk_level=risk)
     db.add(log)
     db.commit()
 
-    return HTMLResponse(f"<h2>{result}</h2><a href='/dashboard'>Back</a>")
+    return HTMLResponse(f"<h2>{result}</h2><p><b>Educational Explainer Agent</b></p><ul>{''.join(f'<li>{line}</li>' for line in educational)}</ul><a href='/dashboard'>Back</a>")
 
 # ================= LOG ANALYZER =================
 
@@ -313,13 +288,19 @@ def run_log_analyzer(request: Request,
     if not user:
         return RedirectResponse("/login", status_code=303)
 
-    result = agents.log_analyzer_agent(logs)
+    result, risk = agents.log_analyzer_agent(logs)
+    threats = [result] if risk in {"medium", "high"} else []
+    educational = _build_educational_explanations(threats, logs)
+    rendered_result = result
+    if educational:
+        rendered_result += "\n\nEducational Explainer Agent:\n- " + "\n- ".join(educational)
 
-    log = models.ScanLog(user_id=user["id"], tool="Log Analyzer", target="Logs Input", result=result)
+    log = models.ScanLog(user_id=user["id"], tool="Log Analyzer", target="Logs Input", result=rendered_result, risk_level=risk)
     db.add(log)
     db.commit()
 
-    return HTMLResponse(f"<h2>{result}</h2><a href='/dashboard'>Back</a>")
+    details = f"<p><b>Educational Explainer Agent</b></p><ul>{''.join(f'<li>{line}</li>' for line in educational)}</ul>" if educational else ""
+    return HTMLResponse(f"<h2>{result}</h2>{details}<a href='/dashboard'>Back</a>")
 
 # ================= URL SCANNER =================
 
@@ -346,17 +327,29 @@ def run_url_scanner(request: Request,
         response = requests.post("http://localhost:5000/scan", json={"url": url}, timeout=30)
         if response.status_code == 200:
             data = response.json()
-            result = f"Scan completed. Risk Level: {data['data']['risk_level']}. Vulnerabilities: {len(data['data']['vulnerabilities'])}"
+            vulnerabilities = data.get("data", {}).get("vulnerabilities", [])
+            risk_level = data.get("data", {}).get("risk_level", "low").lower()
+            threats = [v.get("title", "Detected security threat") for v in vulnerabilities]
+            educational = _build_educational_explanations(threats, url)
+            result = f"Scan completed. Risk Level: {data['data']['risk_level']}. Vulnerabilities: {len(vulnerabilities)}"
+            if educational:
+                result += "\n\nEducational Explainer Agent:\n- " + "\n- ".join(educational)
         else:
+            risk_level = "low"
+            educational = []
             result = f"Error: {response.text}"
     except Exception as e:
+        risk_level = "low"
+        educational = []
         result = f"Failed to scan: {str(e)}"
 
-    log = models.ScanLog(user_id=user["id"], tool="URL Scanner", target=url, result=result)
+    log = models.ScanLog(user_id=user["id"], tool="URL Scanner", target=url, result=result, risk_level=risk_level)
     db.add(log)
     db.commit()
 
-    return HTMLResponse(f"<h2>{result}</h2><a href='/dashboard'>Back</a>")
+    details = f"<p><b>Educational Explainer Agent</b></p><ul>{''.join(f'<li>{line}</li>' for line in educational)}</ul>" if educational else ""
+    first_line = result.splitlines()[0] if result else "Scan result unavailable"
+    return HTMLResponse(f"<h2>{first_line}</h2>{details}<a href='/dashboard'>Back</a>")
 
 @app.post("/scan")
 def proxy_url_scan(payload: dict):
@@ -366,7 +359,12 @@ def proxy_url_scan(payload: dict):
         return {"success": False, "error": f"URL scanner backend unavailable: {str(e)}"}
 
     try:
-        return response.json()
+        data = response.json()
+        vulnerabilities = data.get("data", {}).get("vulnerabilities", []) if isinstance(data, dict) else []
+        for vuln in vulnerabilities:
+            title = vuln.get("title", "Detected security threat")
+            vuln["educational_explanation"] = agents.educational_explainer_agent(title, str(payload.get("url", "")))
+        return data
     except Exception:
         return {"success": False, "error": response.text}
 
@@ -404,9 +402,11 @@ async def analyze_text(request: Request):
     payload = await request.json()
     text = payload.get("text", "") if isinstance(payload, dict) else ""
     if not text.strip():
-        return {"risk_score": 0, "category": "safe message", "explanation": ["No text provided"]}
-    return _text_risk_analysis(text)
-
+        return {"risk_score": 0, "category": "safe message", "explanation": ["No text provided"], "educational_explanations": []}
+    analysis = _text_risk_analysis(text)
+    threats = [item for item in analysis.get("explanation", []) if "No obvious" not in item]
+    analysis["educational_explanations"] = _build_educational_explanations(threats, text)
+    return analysis
 
 @app.post("/scan-qr")
 async def scan_qr(file: UploadFile = File(...)):
@@ -414,12 +414,16 @@ async def scan_qr(file: UploadFile = File(...)):
         data = await file.read()
         files = {"file": (file.filename or "qr.png", data, file.content_type or "application/octet-stream")}
         response = requests.post("http://localhost:8002/scan-qr", files=files, timeout=60)
-        return response.json()
+        data = response.json()
+        threats = [item for item in data.get("explanation", []) if "no" not in item.lower()]
+        data["educational_explanations"] = _build_educational_explanations(threats, file.filename or "")
+        return data
     except Exception:
         return {
             "risk_score": 0,
             "category": "unavailable",
             "explanation": ["QR analyzer service is not running on localhost:8002"],
+            "educational_explanations": [],
         }
 
 @app.get("/analysis", response_class=HTMLResponse)
