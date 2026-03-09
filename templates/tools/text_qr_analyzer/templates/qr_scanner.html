@@ -61,13 +61,13 @@ cursor:pointer;
 
 <div class="glass-card">
 
-<h3>Text Analyzer</h3>
+<!-- <h3>Text Analyzer</h3>
 
 <textarea id="textInput"></textarea>
 
-<button onclick="analyzeText()">Analyze</button>
+<button onclick="analyzeText()">Analyze</button> -->
 
-<!-- <hr style="margin:40px 0">
+<hr style="margin:40px 0">
 
 <h3>QR Scanner</h3>
 
@@ -75,38 +75,20 @@ cursor:pointer;
 
 <button type="button" onclick="scanQR()">Scan QR</button>
 
-<div id="result"></div> -->
+<div id="result"></div>
 
 </div>
 
 <script>
 
-async function analyzeText(){
+// async function analyzeText(){
 
-const text=document.getElementById("textInput").value
+// const text=document.getElementById("textInput").value
 
-const response=await fetch("/analyze-text",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({text:text})
-})
-
-const data=await response.json()
-
-show(data)
-
-}
-
-// async function scanQR(){
-
-// const file=document.getElementById("qrInput").files[0]
-
-// const formData=new FormData()
-// formData.append("file",file)
-
-// const response=await fetch("/scan-qr",{
+// const response=await fetch("/analyze-text",{
 // method:"POST",
-// body:formData
+// headers:{"Content-Type":"application/json"},
+// body:JSON.stringify({text:text})
 // })
 
 // const data=await response.json()
@@ -115,15 +97,33 @@ show(data)
 
 // }
 
-// function show(data){
-// const educational=(data.educational_explanations||[]);
-// document.getElementById("result").innerHTML=
-// "<p><b>Risk Score:</b> "+data.risk_score+"</p>"+
-// "<p><b>Category:</b> "+data.category+"</p>"+
-// "<p>"+data.explanation.join("<br>")+"</p>"+
-// (educational.length?"<p><b>Educational Explainer Agent:</b><br>"+educational.join("<br>")+"</p>":"");
+async function scanQR(){
 
-// }
+const file=document.getElementById("qrInput").files[0]
+
+const formData=new FormData()
+formData.append("file",file)
+
+const response=await fetch("/scan-qr",{
+method:"POST",
+body:formData
+})
+
+const data=await response.json()
+
+show(data)
+
+}
+
+function show(data){
+const educational=(data.educational_explanations||[]);
+document.getElementById("result").innerHTML=
+"<p><b>Risk Score:</b> "+data.risk_score+"</p>"+
+"<p><b>Category:</b> "+data.category+"</p>"+
+"<p>"+data.explanation.join("<br>")+"</p>"+
+(educational.length?"<p><b>Educational Explainer Agent:</b><br>"+educational.join("<br>")+"</p>":"");
+
+}
 
 </script>
 

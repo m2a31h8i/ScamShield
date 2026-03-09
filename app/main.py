@@ -396,6 +396,9 @@ def proxy_url_report(scan_id: int):
 def qr_scanner_page():
     return _read_template("tools", "text_qr_analyzer", "templates", "my_dashboard.html")
 
+@app.get("/text-analyzer", response_class=HTMLResponse)
+def text_analyzer_page():
+    return qr_scanner_page()
 
 @app.post("/analyze-text")
 async def analyze_text(request: Request):
