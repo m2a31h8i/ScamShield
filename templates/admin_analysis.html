@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Platform Analysis</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="dashboard-nav">
+        <a href="/admin">Admin Panel</a>
+        <a href="/admin_users">Users</a>
+        <a href="/admin_analysis">Platform Analysis</a>
+        <a href="/logout">Logout</a>
+    </div>
+
+    <div class="section">
+        <h2>Platform Analysis</h2>
+        <p>Total Platform Scans: <strong>{{total_scans}}</strong></p>
+        <p>High Risk Activity: <strong>{{high}}</strong></p>
+        <p>Medium Risk Activity: <strong>{{medium}}</strong></p>
+        <p>Low Risk Activity: <strong>{{low}}</strong></p>
+    </div>
+</body>
+</html>

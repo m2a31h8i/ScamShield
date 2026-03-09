@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - User Management</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="dashboard-nav">
+        <a href="/admin">Admin Panel</a>
+        <a href="/admin_users">Users</a>
+        <a href="/admin_analysis">Platform Analysis</a>
+        <a href="/logout">Logout</a>
+    </div>
+
+    <div class="section">
+        <h2>User Management</h2>
+        <p>Total Users: <strong>{{total_users}}</strong></p>
+
+        <table border="1" cellpadding="8" cellspacing="0" width="100%">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Risk Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{user_rows}}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

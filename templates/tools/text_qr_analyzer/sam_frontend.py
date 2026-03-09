@@ -7,8 +7,8 @@ app = FastAPI()
 
 templates = Jinja2Templates(directory="templates")
 
-TEXT_API = "http://localhost:8001/analyze-text"
-QR_API = "http://localhost:8002/scan-qr"
+TEXT_API = "http://localhost:8000/analyze-text"
+QR_API = "http://localhost:8000/scan-qr"
 
 
 @app.get("/my-tools", response_class=HTMLResponse)

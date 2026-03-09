@@ -15,9 +15,22 @@ from app.database import SessionLocal
 from app.agents import password_strength_analyzer
 from app.agents import *
 from app.queue import add_task
-
+from fastapi.templating import Jinja2Templates
+from app.tools.text_qr_analyzer import text_analyzer
+from app.tools.text_qr_analyzer import qr_analyzer
 
 app = FastAPI()
+
+# sam added
+templates = Jinja2Templates(directory="templates/tools/text_qr_analyzer/templates")
+
+@app.get("/my-tools", response_class=HTMLResponse)
+def my_tools(request: Request):
+    return templates.TemplateResponse("my_tools.html", {"request": request})
+
+app.include_router(text_router)
+app.include_router(qr_router)
+# sam added end
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -442,13 +455,16 @@ def admin_analysis(request: Request, db: Session = Depends(get_db)):
     logs = db.query(models.ScanLog).all()
 
     high = len([l for l in logs if l.risk_level == "high"])
+    medium = len([l for l in logs if l.risk_level == "medium"])
+    low = len([l for l in logs if l.risk_level == "low"])
 
-    return HTMLResponse(f"""
-    <h1>Platform Analysis</h1>
-    <p>Total Platform Scans: {len(logs)}</p>
-    <p>Total High Risk Activity: {high}</p>
-    <a href='/admin'>Back</a>
-    """)
+    html = _read_template("admin_analysis.html")
+    html = html.replace("{{total_scans}}", str(len(logs)))
+    html = html.replace("{{high}}", str(high))
+    html = html.replace("{{medium}}", str(medium))
+    html = html.replace("{{low}}", str(low))
+
+    return HTMLResponse(html)
 
 @app.get("/admin/users", response_class=HTMLResponse)
 def manage_users(request: Request, db: Session = Depends(get_db)):
@@ -458,9 +474,17 @@ def manage_users(request: Request, db: Session = Depends(get_db)):
 
     users = db.query(models.User).all()
 
-    html = "<h1>User Management</h1>"
+    rows = ""
     for u in users:
-        html += f"<p>{u.username} | {u.email} | Risk: {u.risk_score}</p>"
+        rows += (
+            f"<tr>"
+            f"<td>{u.id}</td>"
+            f"<td>{u.username}</td>"
+            f"<td>{u.email}</td>"
+            f"<td>{u.role}</td>"
+            f"<td>{u.risk_score}</td>"
+            f"</tr>"
+        )
 
     html += "<a href='/admin'>Back</a>"
     return HTMLResponse(html)
