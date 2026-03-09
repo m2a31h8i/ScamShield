@@ -9,26 +9,26 @@
 <style>
 /* ── CSS VARIABLES ─────────────────────────────────────────────── */
 :root {
-  --bg:        #080c10;
-  --bg2:       #0d1117;
-  --bg3:       #161b22;
-  --border:    #21262d;
-  --green:     #00ff88;
-  --green-dim: #00994d;
+  --bg:        #000000;
+  --bg2:       rgba(255,255,255,0.05);
+  --bg3:       rgba(0,0,0,0.6);
+  --border:    rgba(0,242,255,0.3);
+  --green:     #FDBD01;
+  --green-dim: #d6a100;
   --red:       #ff4444;
   --orange:    #ff8800;
   --yellow:    #ffd700;
   --blue:      #00aaff;
   --cyan:      #00e5ff;
   --purple:    #aa55ff;
-  --text:      #c9d1d9;
-  --text-dim:  #8b949e;
+  --text:      #FDBD01;
+  --text-dim:  #d0bc77;
   --mono:      'Share Tech Mono', monospace;
   --sans:      'Exo 2', sans-serif;
   --display:   'Rajdhani', sans-serif;
-  --radius:    8px;
-  --glow-g:    0 0 20px rgba(0,255,136,0.3);
-  --glow-b:    0 0 20px rgba(0,170,255,0.3);
+  --radius:    20px;
+  --glow-g:    0 0 25px rgba(253,189,1,0.4);
+  --glow-b:    0 0 40px rgba(0,242,255,0.2);
 }
 
 /* ── RESET & BASE ──────────────────────────────────────────────── */
@@ -49,8 +49,8 @@ body::before {
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    linear-gradient(rgba(253,189,1,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(253,189,1,0.04) 1px, transparent 1px);
   background-size: 40px 40px;
   pointer-events: none;
   z-index: 0;
@@ -63,7 +63,7 @@ body::after {
   left: 0; right: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--green), transparent);
-  opacity: 0.15;
+  opacity: 0.2;
   animation: scanline 8s linear infinite;
   pointer-events: none;
   z-index: 1;
@@ -115,13 +115,15 @@ body::after {
   margin-bottom: 2rem;
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--glow-b);
 }
 .scan-panel::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--green), var(--cyan), var(--blue));
+  background: linear-gradient(90deg, var(--green), var(--cyan), var(--green));
 }
 .scan-panel h2 {
   font-family: var(--display);
@@ -139,7 +141,7 @@ body::after {
   min-width: 260px;
   background: var(--bg3);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 10px;
   color: var(--cyan);
   font-family: var(--mono);
   font-size: 0.95rem;
@@ -153,10 +155,10 @@ body::after {
   box-shadow: 0 0 0 3px rgba(0,255,136,0.1);
 }
 .btn-scan {
-  background: transparent;
-  border: 1px solid var(--green);
-  border-radius: var(--radius);
-  color: var(--green);
+  background: linear-gradient(90deg, #FDBD01, #c8ff00);
+  border: none;
+  border-radius: 10px;
+  color: #000;
   font-family: var(--display);
   font-weight: 700;
   font-size: 1rem;
@@ -168,8 +170,7 @@ body::after {
   white-space: nowrap;
 }
 .btn-scan:hover {
-  background: var(--green);
-  color: var(--bg);
+  filter: brightness(1.08);
   box-shadow: var(--glow-g);
 }
 .btn-scan:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -252,6 +253,7 @@ body::after {
   border-radius: var(--radius);
   padding: 1.3rem 1.5rem;
   transition: border-color 0.2s;
+  backdrop-filter: blur(20px);
 }
 .panel:hover { border-color: #30363d; }
 .panel-title {
