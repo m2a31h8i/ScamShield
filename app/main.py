@@ -18,6 +18,7 @@ from app.queue import add_task
 from fastapi.templating import Jinja2Templates
 from templates.tools.text_qr_analyzer import text_router
 from templates.tools.text_qr_analyzer import qr_router
+from templates.tools.text_qr_analyzer import explainer_router
 
 app = FastAPI()
 
@@ -30,6 +31,7 @@ def my_dashboard(request: Request):
 
 app.include_router(text_router)
 app.include_router(qr_router)
+app.include_router(explainer_router)
 # sam added end
 
 models.Base.metadata.create_all(bind=engine)
@@ -331,16 +333,24 @@ def run_url_scanner(request: Request,
             risk_level = data.get("data", {}).get("risk_level", "low").lower()
             threats = [v.get("title", "Detected security threat") for v in vulnerabilities]
             educational = _build_educational_explanations(threats, url)
+            agentic = agents.generate_scan_explainer(
+                threat_type=vulnerabilities[0].get("title", "Suspicious URL") if vulnerabilities else "Suspicious URL",
+                target=url,
+                risk_score={"low": 30, "medium": 65, "high": 90}.get(risk_level, 30),
+                indicators=threats,
+            )
             result = f"Scan completed. Risk Level: {data['data']['risk_level']}. Vulnerabilities: {len(vulnerabilities)}"
             if educational:
                 result += "\n\nEducational Explainer Agent:\n- " + "\n- ".join(educational)
         else:
             risk_level = "low"
             educational = []
+            agentic = None
             result = f"Error: {response.text}"
     except Exception as e:
         risk_level = "low"
         educational = []
+        agentic = None
         result = f"Failed to scan: {str(e)}"
 
     log = models.ScanLog(user_id=user["id"], tool="URL Scanner", target=url, result=result, risk_level=risk_level)
@@ -348,6 +358,14 @@ def run_url_scanner(request: Request,
     db.commit()
 
     details = f"<p><b>Educational Explainer Agent</b></p><ul>{''.join(f'<li>{line}</li>' for line in educational)}</ul>" if educational else ""
+    if agentic:
+        details += (
+            f"<p><b>{agentic['title']}</b></p>"
+            f"<p><b>What's wrong:</b> {agentic['whats_wrong']}</p>"
+            f"<p><b>What would happen:</b> {agentic['what_would_happen']}</p>"
+            f"<p><b>What to do:</b> {agentic['what_to_do']}</p>"
+            f"<p><b>Tip:</b> {agentic['tip']}</p>"
+        )
     first_line = result.splitlines()[0] if result else "Scan result unavailable"
     return HTMLResponse(f"<h2>{first_line}</h2>{details}<a href='/dashboard'>Back</a>")
 
@@ -364,6 +382,12 @@ def proxy_url_scan(payload: dict):
         for vuln in vulnerabilities:
             title = vuln.get("title", "Detected security threat")
             vuln["educational_explanation"] = agents.educational_explainer_agent(title, str(payload.get("url", "")))
+            vuln["agentic_explainer"] = agents.generate_scan_explainer(
+                threat_type=title,
+                target=str(payload.get("url", "")),
+                risk_score={"low": 30, "medium": 65, "high": 90}.get(data.get("data", {}).get("risk_level", "low").lower(), 30),
+                indicators=[title],
+            )            
         return data
     except Exception:
         return {"success": False, "error": response.text}
@@ -400,6 +424,10 @@ def qr_scanner_page():
 def text_analyzer_page():
     return _read_template("tools", "text_qr_analyzer", "templates", "my_dashboard.html")
 
+@app.get("/educational-explainer", response_class=HTMLResponse)
+def educational_explainer_page():
+    return _read_template("tools", "text_qr_analyzer", "templates", "educational_explainer.html")
+
 @app.post("/analyze-text")
 async def analyze_text(request: Request):
     payload = await request.json()
@@ -420,6 +448,12 @@ async def scan_qr(file: UploadFile = File(...)):
         data = response.json()
         threats = [item for item in data.get("explanation", []) if "no" not in item.lower()]
         data["educational_explanations"] = _build_educational_explanations(threats, file.filename or "")
+        data["agentic_explainer"] = agents.generate_scan_explainer(
+            threat_type=str(data.get("category", "Suspicious QR")),
+            target=file.filename or "QR code",
+            risk_score=int(round(float(data.get("risk_score", 0)) * 100)) if isinstance(data.get("risk_score", 0), (int, float)) else 0,
+            indicators=threats,
+        )
         return data
     except Exception:
         return {

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Educational Explainer Agent</title>
+  <link rel="stylesheet" href="/static/css/educational_explainer.css" />
+</head>
+<body>
+  <h1>🎓 Educational Explainer Agent</h1>
+
+  <div class="glass-card">
+    <p>Scan Result → Threat Classifier → User Profile Detector → Explanation Generator → Tip Suggester</p>
+
+    <label>Threat Type</label>
+    <input id="threatType" placeholder="Phishing, Malware, Suspicious Redirect..." value="Phishing" />
+
+    <label>Target (URL/QR text)</label>
+    <input id="target" placeholder="paypa1.com" />
+
+    <label>Risk Score (0-100)</label>
+    <input id="riskScore" type="number" min="0" max="100" value="91" />
+
+    <label>Indicators (comma separated)</label>
+    <input id="indicators" placeholder="Impersonating PayPal, Homograph attack" />
+
+    <label>User Level</label>
+    <select id="userLevel">
+      <option value="">Auto detect</option>
+      <option value="beginner">Beginner</option>
+      <option value="intermediate">Intermediate</option>
+      <option value="advanced">Advanced</option>
+    </select>
+
+    <button type="button" onclick="runExplainer()">Generate Explanation</button>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    async function runExplainer() {
+      const payload = {
+        threat_type: document.getElementById("threatType").value,
+        target: document.getElementById("target").value,
+        risk_score: Number(document.getElementById("riskScore").value || 0),
+        indicators: document.getElementById("indicators").value.split(",").map(v => v.trim()).filter(Boolean),
+        user_level: document.getElementById("userLevel").value || null
+      };
+
+      const response = await fetch("/educational-explainer/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      document.getElementById("result").innerHTML = `
+        <h3>${data.title}</h3>
+        <p><b>🔴 What's wrong:</b> ${data.whats_wrong}</p>
+        <p><b>⚠️ What would happen:</b> ${data.what_would_happen}</p>
+        <p><b>✅ What to do:</b> ${data.what_to_do}</p>
+        <p><b>💡 Tip:</b> ${data.tip}</p>
+        <p><small>User Level: ${data.user_level} | Risk Score: ${data.risk_score}/100</small></p>
+      `;
+    }
+  </script>
+</body>
+</html>

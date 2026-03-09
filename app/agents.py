@@ -54,6 +54,53 @@ def educational_explainer_agent(threat: str, user_context: str = "") -> str:
 
     return f"{beginner_prefix}{body}{suffix}"
 
+def generate_scan_explainer(threat_type: str, target: str = "", risk_score: int = 50, indicators=None, user_level: str | None = None) -> dict:
+    """Generate a short educational explanation in three parts plus a learning tip."""
+    indicators = indicators or []
+    normalized_threat = (threat_type or "Suspicious Activity").strip()
+    context = f"{normalized_threat} {target} {' '.join(indicators)}"
+    level = user_level if user_level in {"beginner", "intermediate", "advanced"} else _infer_tech_level(context)
+
+    target_label = target or "this target"
+
+    if "phish" in normalized_threat.lower() or "imperson" in normalized_threat.lower():
+        whats_wrong = f"{target_label} appears to impersonate a trusted brand to steal credentials."
+        what_happens = "If you continue, login or payment details could be captured by attackers."
+        tip = "Check the exact domain spelling before entering any password."
+    elif "malware" in normalized_threat.lower():
+        whats_wrong = f"{target_label} is associated with malware delivery indicators."
+        what_happens = "Opening it may install malicious files that spy on or lock your device."
+        tip = "Keep antivirus active and never run unknown downloads."
+    elif "redirect" in normalized_threat.lower():
+        whats_wrong = f"{target_label} triggers suspicious redirects to unrelated destinations."
+        what_happens = "You may be pushed to fake pages that request credentials or card info."
+        tip = "Avoid pages that jump across multiple domains unexpectedly."
+    else:
+        whats_wrong = f"{target_label} has risk signals ({', '.join(indicators[:2]) or 'multiple suspicious indicators'})."
+        what_happens = "Proceeding could expose personal data, accounts, or payment information."
+        tip = "When unsure, stop and verify with the official website or app."
+
+    if level == "advanced":
+        whats_wrong += " Technical review suggests anomalies in trust and reputation signals."
+    elif level == "beginner":
+        whats_wrong = "This page looks suspicious and may be pretending to be safe. " + whats_wrong
+
+    what_to_do = "Close it immediately and avoid entering any information."
+    if risk_score >= 80:
+        what_to_do += " If you already interacted, rotate passwords and enable MFA now."
+
+    title = f"🚨 {normalized_threat} Detected"
+
+    return {
+        "title": title,
+        "user_level": level,
+        "whats_wrong": whats_wrong,
+        "what_would_happen": what_happens,
+        "what_to_do": what_to_do,
+        "tip": tip,
+        "risk_score": risk_score,
+    }
+
 def password_strength_analyzer(password):
 
     score = 0
