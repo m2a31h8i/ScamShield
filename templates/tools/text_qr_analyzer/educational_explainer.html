@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Educational Explainer Agent</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+<div class="dashboard-nav">
+<a href="/dashboard">Dashboard</a>
+<a href="/analysis">Analysis</a>
+<a href="/profile">Profile</a>
+<a href="/logout">Logout</a>
+</div>
+
+<div class="section">
+
+<h2>🎓 Educational Explainer Agent</h2>
+
+<p>Paste suspicious text or scan result:</p>
+
+<textarea id="scanText" rows="6" style="width:100%"></textarea>
+
+<br><br>
+
+<button onclick="analyze()">Explain Threat</button>
+
+</div>
+
+<div class="section">
+
+<h3 style="color: darkgoldenrod; font-size:x-large;">AI Explanation</h3>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+async function analyze() {
+
+let text = document.getElementById("scanText").value
+
+let response = await fetch("/educational-explainer/analyze-text", {
+method: "POST",
+headers: {"Content-Type": "application/json"},
+body: JSON.stringify({scan_text: text})
+})
+
+let data = await response.json()
+
+document.getElementById("result").innerHTML = `
+<h3>${data.title}</h3>
+<br>
+<p><b>What's wrong:</b> ${data.whats_wrong}</p>
+<br>
+<p><b>What would happen:</b> ${data.what_would_happen}</p>
+<br>
+<p><b>What to do:</b> ${data.what_to_do}</p>
+<br>
+<p><b>Tip:</b> ${data.tip}</p>
+`
+
+}
+
+</script>
+
+</body>
+</html>

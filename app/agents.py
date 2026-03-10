@@ -139,4 +139,3 @@ def password_strength_analyzer(password):
         "feedback": feedback
     }
 
-# ================= SIMPLE AGENTS =================

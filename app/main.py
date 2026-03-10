@@ -19,6 +19,7 @@ from fastapi.templating import Jinja2Templates
 from templates.tools.text_qr_analyzer import text_router
 from templates.tools.text_qr_analyzer import qr_router
 from templates.tools.text_qr_analyzer import explainer_router
+from templates.tools.text_qr_analyzer.educational_explainer import explainer_router
 
 app = FastAPI()
 
@@ -40,6 +41,7 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+app.include_router(explainer_router)
 def _template_path(*parts: str) -> str:
     return os.path.join("templates", *parts)
 
@@ -426,7 +428,30 @@ def text_analyzer_page():
 
 @app.get("/educational-explainer", response_class=HTMLResponse)
 def educational_explainer_page():
-    return _read_template("tools", "text_qr_analyzer", "templates", "educational_explainer.html")
+    return _read_template("tools", "text_qr_analyzer", "educational_explainer.html")
+
+from fastapi import Body
+
+@app.post("/educational-explainer/analyze-text")
+def analyze_text(data: dict = Body(...)):
+
+    text = data.get("scan_text", "").lower()
+
+    # simple threat detection
+    if "login" in text or "password" in text:
+        threat = "Phishing"
+    elif "urgent" in text or "verify" in text:
+        threat = "Scam Message"
+    else:
+        threat = "Suspicious Content"
+
+    return {
+        "title": f"{threat} Detected",
+        "whats_wrong": "The message contains patterns commonly used in scams.",
+        "what_would_happen": "Attackers may try to steal your personal or login information.",
+        "what_to_do": "Do not click links or share sensitive data.",
+        "tip": "Always verify the sender before responding."
+    }
 
 @app.post("/analyze-text")
 async def analyze_text(request: Request):
